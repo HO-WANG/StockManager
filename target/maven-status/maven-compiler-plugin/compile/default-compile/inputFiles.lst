@@ -1,8 +1,0 @@
-/Users/jihong/study/StockManager/src/main/java/com/example/stockmanager/StockManagerApplication.java
-/Users/jihong/study/StockManager/src/main/java/com/example/stockmanager/config/WebClientConfig.java
-/Users/jihong/study/StockManager/src/main/java/com/example/stockmanager/controller/StockController.java
-/Users/jihong/study/StockManager/src/main/java/com/example/stockmanager/domain/ClosePriceResponse.java
-/Users/jihong/study/StockManager/src/main/java/com/example/stockmanager/domain/RsiResponse.java
-/Users/jihong/study/StockManager/src/main/java/com/example/stockmanager/service/Scheduler.java
-/Users/jihong/study/StockManager/src/main/java/com/example/stockmanager/service/SlackNotifier.java
-/Users/jihong/study/StockManager/src/main/java/com/example/stockmanager/service/StockService.java
