@@ -26,7 +26,7 @@ public class ClosePriceResponse {
     @Data
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class DailyData {
-        @JsonProperty("5. adjusted close")
+        @JsonProperty("4. close")
         private double close;
     }
 }

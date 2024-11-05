@@ -25,7 +25,7 @@ public class StockController {
     }
 
     @GetMapping("/api/notify")
-    @Scheduled(cron = "0 4 23 * * *")
+    @Scheduled(cron = "0 0 7 * * *")
     public void notifyStockSummaries() {
         List<String> tickers = List.of("QQQ", "SCHD");
 

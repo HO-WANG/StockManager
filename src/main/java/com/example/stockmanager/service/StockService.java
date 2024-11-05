@@ -21,7 +21,7 @@ public class StockService {
         ClosePriceResponse response = webClient.get()
                 .uri("https://www.alphavantage.co", uriBuilder -> uriBuilder
                         .path("/query")
-                        .queryParam("function", "TIME_SERIES_DAILY_ADJUSTED")
+                        .queryParam("function", "TIME_SERIES_DAILY")
                         .queryParam("symbol", symbol)
                         .queryParam("apikey", apiKey)
                         .queryParam("outputsize", "full")

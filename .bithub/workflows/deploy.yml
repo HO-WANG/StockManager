@@ -1,0 +1,56 @@
+name: Deploy Spring Boot Application to EC2
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Java
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Build the project
+        run: ./mvnw clean package -DskipTests
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: spring-boot-app
+          path: target/*.jar
+
+      - name: Set up SSH
+        env:
+          SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Deploy to EC2
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          APP_NAME: ${{ secrets.APP_NAME }}
+        run: |
+          # Copy the JAR file to EC2
+          scp -o StrictHostKeyChecking=no target/${APP_NAME} $EC2_USER@$EC2_HOST:/home/$EC2_USER/
+          
+          # Connect to EC2 and restart the Spring Boot application
+          ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST << 'EOF'
+            # Kill the existing application if running
+            pkill -f ${APP_NAME} || true
+          
+            # Run the new application in the background
+            nohup java -jar /home/$EC2_USER/${APP_NAME} > /home/$EC2_USER/app.log 2>&1 &
+          EOF
