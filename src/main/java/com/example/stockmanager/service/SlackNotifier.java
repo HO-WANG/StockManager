@@ -9,11 +9,12 @@ import org.springframework.web.reactive.function.client.WebClient;
 public class SlackNotifier {
 
     private final WebClient webClient;
-    private final String webhookUrl = "https://hooks.slack.com/services/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";
+    private final String baseUrl = "https://hooks.slack.com/services/";
+    private final String myPersonalUrl = "T07SS08ELRJ/B07UY25FHJA/aVwWsAwSw0hNmxFxvo2uVv8y";
 
     public void sendNotification(String message) {
         webClient.post()
-                .uri(webhookUrl)
+                .uri(baseUrl + myPersonalUrl)
                 .bodyValue("{\"text\":\"" + message + "\"}")
                 .retrieve()
                 .bodyToMono(Void.class)
