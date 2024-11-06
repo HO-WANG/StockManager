@@ -71,4 +71,9 @@ public class StockController {
 
         });
     }
+
+    @Scheduled(cron = "0 0 * * * *")
+    public void slackTest() {
+        slackNotifier.sendNotification("1시간 마다 슬랙 웹훅 테스트...");
+    }
 }
