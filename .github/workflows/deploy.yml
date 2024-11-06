@@ -54,6 +54,8 @@ jobs:
             # Kill the existing application if running
             pkill -f ${APP_NAME} || true
           
+            sleep 10
+          
             # Run the new application in the background
             nohup java -jar /home/${EC2_USER}/${APP_NAME} > /home/${EC2_USER}/${APP_NAME}.log 2>&1 &
           EOF
