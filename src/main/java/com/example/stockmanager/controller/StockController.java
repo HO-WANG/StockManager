@@ -67,8 +67,6 @@ public class StockController {
             if (prevClose <= ma120) {
                 slackNotifier.sendNotification("종목명 : " + symbol + " 이 120일 평균가보다 낮습니다.");
             }
-
-
         });
     }
 }
