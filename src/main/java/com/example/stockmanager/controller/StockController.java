@@ -41,43 +41,31 @@ public class StockController {
         String message = createSummaryMessage(summary, rsi);
         slackNotifier.sendNotification(message);
         log.info("message : {} ", message);
-
-        sendRsiNotifications(summary.symbol(), rsi.prevRsi());
-        sendMovingAverageNotifications(summary);
     }
 
     private String createSummaryMessage(StockSummary summary, RsiSummary rsi) {
+        String rsiStatus = "";
+        if (rsi.prevRsi() <= 35) {
+            rsiStatus = " (과매도!)";
+        } else if (rsi.prevRsi() >= 65) {
+            rsiStatus = " (과매수!)";
+        }
+
+        String ma20Status = summary.prevClose() <= summary.ma20() ? " (종가보다 높음)" : "";
+        String ma60Status = summary.prevClose() <= summary.ma60() ? " (종가보다 높음)" : "";
+        String ma120Status = summary.prevClose() <= summary.ma120() ? " (종가보다 높음)" : "";
+
         return String.format(
-                "<(%s) %s 요약>\n - 전일종가: %.2f\n - 전일대비 변동률: %s\n - RSI : %.2f \n - 20일평균: %.2f \n - 60일평균: %.2f \n - 120일평균: %.2f",
+                "<(%s) %s 요약>\n - 전일종가: %.2f (%.2f%%)\n - RSI : %.2f%s \n - 20일평균: %.2f%s \n - 60일평균: %.2f%s \n - 120일평균: %.2f%s",
                 summary.baseDate(),
                 summary.symbol(),
                 summary.prevClose(),
                 summary.prevCloseRate(),
                 rsi.prevRsi(),
-                summary.ma20(), summary.ma60(), summary.ma120()
+                rsiStatus,
+                summary.ma20(), ma20Status,
+                summary.ma60(), ma60Status,
+                summary.ma120(), ma120Status
         );
-    }
-
-    private void sendRsiNotifications(String symbol, double prevRsi) {
-        if (prevRsi <= 35) {
-            slackNotifier.sendNotification("종목명 : " + symbol + " 이 과매도 상태 입니다(RSI : " + prevRsi + ").");
-        } else if (prevRsi >= 65) {
-            slackNotifier.sendNotification("종목명 : " + symbol + " 이 과매수 상태 입니다(RSI : " + prevRsi + ").");
-        }
-    }
-
-    private void sendMovingAverageNotifications(StockSummary summary) {
-        String symbol = summary.symbol();
-        double prevClose = summary.prevClose();
-
-        if (prevClose <= summary.ma20()) {
-            slackNotifier.sendNotification("종목명 : " + symbol + " 이 20일 평균가보다 낮습니다.");
-        }
-        if (prevClose <= summary.ma60()) {
-            slackNotifier.sendNotification("종목명 : " + symbol + " 이 60일 평균가보다 낮습니다.");
-        }
-        if (prevClose <= summary.ma120()) {
-            slackNotifier.sendNotification("종목명 : " + symbol + " 이 120일 평균가보다 낮습니다.");
-        }
     }
 }
