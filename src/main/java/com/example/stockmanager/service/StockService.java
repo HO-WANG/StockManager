@@ -79,7 +79,6 @@ public class StockService {
         double twoDaysAgoClose = closingPrices.get(1);
         
         double fluctuationRate = ((prevClose - twoDaysAgoClose) / twoDaysAgoClose) * 100;
-        String formattedFluctuationRate = String.format("%.2f", fluctuationRate);
 
         return new StockSummary(
                 symbol,
@@ -88,7 +87,7 @@ public class StockService {
                 calculateMovingAverage(closingPrices, 20),
                 calculateMovingAverage(closingPrices, 60),
                 calculateMovingAverage(closingPrices, 120),
-                formattedFluctuationRate
+                fluctuationRate
         );
     }
 

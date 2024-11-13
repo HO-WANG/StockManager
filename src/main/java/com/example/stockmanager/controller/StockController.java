@@ -60,7 +60,7 @@ public class StockController {
                 summary.baseDate(),
                 summary.symbol(),
                 summary.prevClose(),
-                summary.prevCloseRate(),
+                summary.fluctuationRate(),
                 rsi.prevRsi(),
                 rsiStatus,
                 summary.ma20(), ma20Status,

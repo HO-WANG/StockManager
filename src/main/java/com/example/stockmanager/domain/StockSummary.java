@@ -7,5 +7,5 @@ public record StockSummary(
     double ma20,
     double ma60,
     double ma120,
-    String prevCloseRate
+    double fluctuationRate
 ) {} 
