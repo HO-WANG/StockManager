@@ -2,6 +2,8 @@ package com.example.stockmanager.service;
 
 import com.example.stockmanager.domain.ClosePriceResponse;
 import com.example.stockmanager.domain.RsiResponse;
+import com.example.stockmanager.domain.RsiSummary;
+import com.example.stockmanager.domain.StockSummary;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -15,41 +17,98 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class StockService {
 
+    private static final String BASE_URL = "https://www.alphavantage.co";
+    private static final String DEFAULT_RSI_PERIOD = "14";
+    private static final String DAILY_INTERVAL = "daily";
+
     private final WebClient webClient;
 
-    public Map<String, String> getDailySummary(String symbol, String apiKey) {
-        ClosePriceResponse response = webClient.get()
-                .uri("https://www.alphavantage.co", uriBuilder -> uriBuilder
-                        .path("/query")
-                        .queryParam("function", "TIME_SERIES_DAILY")
-                        .queryParam("symbol", symbol)
-                        .queryParam("apikey", apiKey)
-                        .queryParam("outputsize", "full")
-                        .build())
-                .retrieve()
-                .bodyToMono(ClosePriceResponse.class)
-                .block();
+    public StockSummary getDailySummary(String symbol, String apiKey) {
+        ClosePriceResponse response = fetchFromApi(
+                buildDailySummaryParams(symbol, apiKey),
+                ClosePriceResponse.class
+        );
+        
+        return processDailySummaryResponse(response, symbol);
+    }
 
-        Map<String, ClosePriceResponse.DailyData> timeSeries = response.getTimeSeries();
-        List<Double> closingPrices = timeSeries.values().stream()
+    public RsiSummary getRsi(String symbol, String apiKey) {
+        RsiResponse response = fetchFromApi(
+                buildRsiParams(symbol, apiKey),
+                RsiResponse.class
+        );
+        
+        return processRsiResponse(response, symbol);
+    }
+
+    private <T> T fetchFromApi(Map<String, String> queryParams, Class<T> responseType) {
+        return webClient.get()
+                .uri(BASE_URL, uriBuilder -> {
+                    uriBuilder.path("/query");
+                    queryParams.forEach(uriBuilder::queryParam);
+                    return uriBuilder.build();
+                })
+                .retrieve()
+                .bodyToMono(responseType)
+                .block();
+    }
+
+    private Map<String, String> buildDailySummaryParams(String symbol, String apiKey) {
+        return Map.of(
+                "function", "TIME_SERIES_DAILY",
+                "symbol", symbol,
+                "apikey", apiKey,
+                "outputsize", "full"
+        );
+    }
+
+    private Map<String, String> buildRsiParams(String symbol, String apiKey) {
+        return Map.of(
+                "function", "RSI",
+                "symbol", symbol,
+                "interval", DAILY_INTERVAL,
+                "time_period", DEFAULT_RSI_PERIOD,
+                "series_type", "close",
+                "apikey", apiKey
+        );
+    }
+
+    private StockSummary processDailySummaryResponse(ClosePriceResponse response, String symbol) {
+        List<Double> closingPrices = extractClosingPrices(response);
+        double prevClose = closingPrices.get(0);
+        double twoDaysAgoClose = closingPrices.get(1);
+        
+        double fluctuationRate = ((prevClose - twoDaysAgoClose) / twoDaysAgoClose) * 100;
+        String formattedFluctuationRate = String.format("%.2f", fluctuationRate);
+
+        return new StockSummary(
+                symbol,
+                response.getMetaData().getLastRefreshed(),
+                prevClose,
+                calculateMovingAverage(closingPrices, 20),
+                calculateMovingAverage(closingPrices, 60),
+                calculateMovingAverage(closingPrices, 120),
+                formattedFluctuationRate
+        );
+    }
+
+    private RsiSummary processRsiResponse(RsiResponse response, String symbol) {
+        double prevRsi = response.getTimeSeries().values().stream()
+                .map(RsiResponse.TechnicalAnalysis::getRsi)
+                .findFirst()
+                .orElse(0.0);
+
+        return new RsiSummary(
+                symbol,
+                response.getMetaData().getLastRefreshed(),
+                prevRsi
+        );
+    }
+
+    private List<Double> extractClosingPrices(ClosePriceResponse response) {
+        return response.getTimeSeries().values().stream()
                 .map(ClosePriceResponse.DailyData::getClose)
                 .toList();
-
-        double prevClose = closingPrices.get(0);
-        double ma20 = calculateMovingAverage(closingPrices, 20);
-        double ma60 = calculateMovingAverage(closingPrices, 60);
-        double ma120 = calculateMovingAverage(closingPrices, 120);
-
-        return Map.of(
-                "symbol", symbol,
-                "baseDate", response.getMetaData().getLastRefreshed(),
-                "prevClose", String.valueOf(prevClose),
-                "ma20", String.valueOf(ma20),
-                "ma60", String.valueOf(ma60),
-                "ma120", String.valueOf(ma120)
-        );
-
-
     }
 
     private double calculateMovingAverage(List<Double> prices, int days) {
@@ -59,35 +118,5 @@ public class StockService {
                 .average()
                 .orElse(0.0);
     }
-
-    public Map<String, String> getRsi(String symbol, String apiKey) {
-        RsiResponse response = webClient.get()
-                .uri("https://www.alphavantage.co", uriBuilder -> uriBuilder
-                        .path("/query")
-                        .queryParam("function", "RSI")
-                        .queryParam("symbol", symbol)
-                        .queryParam("interval", "daily")
-                        .queryParam("time_period", "14") // RSI 는 보통 관찰기간 14일
-                        .queryParam("series_type", "close") // RSI 는 보통 종가 기준으로 계산
-                        .queryParam("apikey", apiKey)
-                        .build())
-                .retrieve()
-                .bodyToMono(RsiResponse.class)
-                .block();
-
-        Map<String, RsiResponse.TechnicalAnalysis> timeSeries = response.getTimeSeries();
-        List<Double> rsiData = timeSeries.values().stream()
-                .map(RsiResponse.TechnicalAnalysis::getRsi)
-                .toList();
-
-        double prevRsi = rsiData.get(0);
-
-        return Map.of(
-                "symbol", symbol,
-                "baseDate", response.getMetaData().getLastRefreshed(),
-                "prevRsi", String.valueOf(prevRsi)
-        );
-
-
-    }
 }
+
